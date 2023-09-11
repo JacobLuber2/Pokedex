@@ -1,13 +1,18 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter } from "react-router-dom";
+import {
+  BrowserRouter,
+  Route,
+  Router,
+  Routes,
+  Link,
+} from "react-router-dom";
 function App() {
   const [pokemon, setPokemon] = useState({ pokemon: [] });
   const [optionWeakness, setOptionWeakness] = useState([]);
   const [filteredList, setFilteredList] = useState([]);
   const [optionPokemon, setOptionPokemon] = useState("");
   const [optionType, setOptionType] = useState([]);
-  console.log("option Weakness", optionWeakness);
-  console.log("option Type", optionType);
+  const [searchPokemon, setSearchPokemon] = useState("");
   let types = [
     "Fire",
     "Ice",
@@ -26,18 +31,17 @@ function App() {
     "Fairy",
   ];
   function filterByWeakness(pokemon) {
-    console.log('filterByWeakness ran');
-      let filteredWeaknesses = pokemon.filter((pokemon) => {
-        let found_weakness = true;
-        for (let i = 0; i < optionWeakness.length; i++) {
-          if (!pokemon.weaknesses.includes(optionWeakness[i])) {
-            found_weakness = false;
-          }
+    let filteredWeaknesses = pokemon.filter((pokemon) => {
+      let found_weakness = true;
+      for (let i = 0; i < optionWeakness.length; i++) {
+        if (!pokemon.weaknesses.includes(optionWeakness[i])) {
+          found_weakness = false;
         }
-        return found_weakness;
-      });
-      console.log('filtered weaknesses', filteredWeaknesses);
-      return filteredWeaknesses;
+      }
+      return found_weakness;
+    });
+    console.log("filtered weaknesses", filteredWeaknesses);
+    return filteredWeaknesses;
   }
   function fetchPokemon() {
     fetch(
@@ -45,7 +49,7 @@ function App() {
     )
       .then((res) => res.json())
       .then((pokemon) => {
-      setPokemon(pokemon.pokemon);
+        setPokemon(pokemon.pokemon);
       })
 
       .catch((err) => console.error(err));
@@ -66,22 +70,32 @@ function App() {
       return pokemon;
     }
   }
+
   function checkBoth() {
-  let firstFilter = false; 
-  let finalFilter;
-  if(optionType.length > 0) {
-  firstFilter = filterByType(pokemon);
-  if(optionWeakness.length > 0 && firstFilter) {
-    finalFilter = filterByWeakness(firstFilter);
-  setFilteredList(finalFilter);
-  } else if(optionWeakness.length > 0) {
-    finalFilter = filterByWeakness(pokemon);
-    console.log('final filter', finalFilter);
-  setFilteredList(finalFilter);
-  } else {
-  setFilteredList(pokemon);
-  }
-  }
+    if (searchPokemon) {
+      let nameFilter = checkName();
+      console.log("nameFilter", nameFilter);
+      setFilteredList(nameFilter);
+      console.log()
+    }
+    if (searchPokemon !== "") {
+      return filteredList;
+    }
+    let firstFilter = false;
+    let finalFilter;
+    if (optionWeakness.length > 0 && optionType.length > 0) {
+      firstFilter = filterByType(pokemon);
+      finalFilter = filterByWeakness(firstFilter);
+      setFilteredList(finalFilter);
+    } else if (optionType.length > 0) {
+      firstFilter = filterByType(pokemon);
+      setFilteredList(firstFilter);
+    } else if (optionWeakness.length > 0) {
+      finalFilter = filterByWeakness(pokemon);
+      setFilteredList(finalFilter);
+    } else {
+      setFilteredList(pokemon);
+    }
   }
   function fetchPokemon() {
     fetch(
@@ -107,7 +121,56 @@ function App() {
       checkBoth();
     }
   }, [optionType]);
-
+  useEffect(() => {
+    if (pokemon.length > 0) {
+      console.log("UseEffect ran");
+      checkBoth();
+    }
+  }, [searchPokemon]);
+  function filterByWeaknessBoxes() {
+    return (
+      <>
+        {types.map((weakness) => {
+          return (
+            <BrowserRouter>
+              <Routes>
+                <Route path="/details/:name" element={<detailsPage />} />
+              </Routes>
+              <div key={weakness + weakness}>
+                <label>{weakness}</label>
+                <input
+                  key={pokemon.weakness}
+                  type="checkbox"
+                  onChange={function (e) {
+                    if (e.target.checked === true) {
+                      setOptionWeakness([...optionWeakness, weakness]);
+                    } else if (e.target.checked === false) {
+                      for (let i = 0; i < optionWeakness.length; i++) {
+                        let intermediaryArray = [...optionWeakness];
+                        if (optionWeakness[i] === weakness) {
+                          intermediaryArray.splice(i, 1);
+                        }
+                        setOptionWeakness(intermediaryArray);
+                      }
+                    }
+                  }}
+                />
+              </div>
+            </BrowserRouter>
+          );
+        })}
+      </>
+    );
+  }
+  function checkName() {
+    let filteredList;
+    if (searchPokemon !== "") {
+      filteredList = pokemon.filter((poke) => {
+        return poke.name.toUpperCase() == searchPokemon.toUpperCase();
+      });
+    }
+    return filteredList;
+  }
   function filterByWeaknessBoxes() {
     return (
       <>
@@ -183,16 +246,18 @@ function App() {
             type="text"
             name="text"
             id="text"
-            value={optionPokemon}
-            onChange={(event) => setOptionPokemon(event.target.value)}
+            value={searchPokemon}
+            onChange={(event) => setSearchPokemon(event.target.value)}
           />
         </form>
         <ul key={pokemon.name}>
           {filteredList.map((pokemon) => {
             return (
               <li key={pokemon.id}>
+                
                 <div className="eachPokemon">
-                  {pokemon.name}, {pokemon.num} type(s):
+                 <Link to="/"> {pokemon.name} </Link>, {pokemon.num}
+                  type(s):
                   {pokemon.type.length > 0 &&
                     pokemon.type.map((pokemonType) => {
                       return (
